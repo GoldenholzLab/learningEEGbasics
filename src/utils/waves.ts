@@ -71,8 +71,14 @@ export function attenuateComponents(
 
 export function aliasFrequency(signalFrequency: number, sampleRate: number): number {
   if (sampleRate <= 0) return signalFrequency;
-  const folded = Math.abs(signalFrequency - sampleRate * Math.round(signalFrequency / sampleRate));
+  const remainder = ((signalFrequency % sampleRate) + sampleRate) % sampleRate;
+  const folded = Math.min(remainder, sampleRate - remainder);
   return Number(folded.toFixed(2));
+}
+
+export function displaySampleRate(horizontalPixels: number, duration: number): number {
+  if (duration <= 0) return 0;
+  return Math.max(1, horizontalPixels - 1) / duration;
 }
 
 export function amplitudeRange(series: WavePoint[][]): number {

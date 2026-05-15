@@ -7,6 +7,7 @@ import {
   aliasFrequency,
   amplitudeRange,
   attenuateComponents,
+  displaySampleRate,
   generateWave,
   sumWaves,
   type ComponentWave,
@@ -318,7 +319,7 @@ function ScreenDemo() {
   const [noise, setNoise] = useState(0.4);
   const logTime = Math.log10(seconds);
   const horizontalPixels = Math.round(screenWidthInches * pixelsPerInch);
-  const screenSampleRate = horizontalPixels / seconds;
+  const screenSampleRate = displaySampleRate(horizontalPixels, seconds);
   const sampledFrequency = aliasFrequency(signalFrequency, screenSampleRate);
   const idealSampleRate = Math.min(1200, Math.max(240, signalFrequency * 28));
   const ideal = useMemo(() => generateWave(signalFrequency, 1.2, seconds, idealSampleRate, 0.5), [signalFrequency, seconds, idealSampleRate]);
@@ -334,7 +335,7 @@ function ScreenDemo() {
         <figure className="screen-diagram" aria-label="Computer screen width diagram">
           <div className="screen-frame">
             <div className="screen-inner">
-              <span>{horizontalPixels.toLocaleString()} horizontal pixels</span>
+              <span>{horizontalPixels.toLocaleString()} horizontal pixels, {screenSampleRate.toFixed(1)} samples/s</span>
             </div>
           </div>
           <div className="screen-measure">
