@@ -21,6 +21,7 @@ export function HomePage() {
           <p className="lede">
             Explore frequency, power, filtering, and aliasing with live waveform demos inspired by the original MATLAB teaching session.
           </p>
+          <p className="attribution">by Daniel M. Goldenholz at Beth Israel Deaconess Medical Center</p>
         </div>
       </section>
       <section className="module-index" aria-labelledby="module-index-heading">
