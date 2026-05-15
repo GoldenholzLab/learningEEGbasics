@@ -15,6 +15,7 @@ import {
 const duration = 2;
 const sampleRate = 240;
 const twoPi = Math.PI * 2;
+const screenWidthInches = 24;
 
 function formatPiMultiple(radians: number) {
   const multiple = radians / Math.PI;
@@ -308,22 +309,46 @@ function SamplingDemo() {
 
 function ScreenDemo() {
   const [signalFrequency, setSignalFrequency] = useState(60);
-  const [pixels, setPixels] = useState(90);
+  const [pixelsPerInch, setPixelsPerInch] = useState(90);
   const [seconds, setSeconds] = useState(1);
   const [noise, setNoise] = useState(0.4);
-  const ideal = useMemo(() => generateWave(signalFrequency, 1.2, seconds, signalFrequency * 28, 0.5), [signalFrequency, seconds]);
+  const horizontalPixels = Math.round(screenWidthInches * pixelsPerInch);
+  const screenSampleRate = horizontalPixels / seconds;
+  const sampledFrequency = aliasFrequency(signalFrequency, screenSampleRate);
+  const idealSampleRate = Math.min(1200, Math.max(240, signalFrequency * 28));
+  const ideal = useMemo(() => generateWave(signalFrequency, 1.2, seconds, idealSampleRate, 0.5), [signalFrequency, seconds, idealSampleRate]);
   const displayed = useMemo(() => {
-    const base = generateWave(signalFrequency, 1.2, seconds, pixels / seconds, 0.5);
-    const slowNoise = generateWave(5, noise, seconds, pixels / seconds, 1.4);
+    const base = generateWave(signalFrequency, 1.2, seconds, screenSampleRate, 0.5);
+    const slowNoise = generateWave(5, noise, seconds, screenSampleRate, 1.4);
     return base.map((point, index) => ({ ...point, y: point.y + slowNoise[index].y }));
-  }, [signalFrequency, pixels, seconds, noise]);
+  }, [signalFrequency, screenSampleRate, seconds, noise]);
 
   return (
-    <DemoFrame note="The teal points are what the display can draw across the available horizontal pixels.">
+    <DemoFrame note="The teal trace is what a 24-inch-wide screen can draw after the time window is compressed into the available horizontal pixels.">
+      <figure className="screen-diagram" aria-label="Computer screen width diagram">
+        <div className="screen-frame">
+          <div className="screen-inner">
+            <span>{horizontalPixels.toLocaleString()} horizontal pixels</span>
+          </div>
+        </div>
+        <div className="screen-measure">
+          <span />
+          <strong>24 inches</strong>
+          <span />
+        </div>
+      </figure>
       <div className="controls-grid">
         <Slider label="Signal frequency" value={signalFrequency} min={10} max={90} unit=" Hz" onChange={setSignalFrequency} />
-        <Slider label="Horizontal pixels" value={pixels} min={30} max={300} unit=" px" onChange={setPixels} />
-        <Slider label="Seconds shown" value={seconds} min={1} max={5} unit=" s" onChange={setSeconds} />
+        <Slider label="Pixels per inch" value={pixelsPerInch} min={20} max={220} unit=" ppi" onChange={setPixelsPerInch} />
+        <Slider
+          label="Time shown"
+          value={seconds}
+          min={0.1}
+          max={60}
+          step={0.1}
+          displayValue={seconds < 1 ? `${Math.round(seconds * 1000)} ms` : `${Number(seconds.toFixed(1))} s`}
+          onChange={setSeconds}
+        />
         <Slider label="Slow noise" value={noise} min={0} max={1.2} step={0.1} unit=" uV" onChange={setNoise} />
       </div>
       <WaveformPlot
@@ -331,8 +356,14 @@ function ScreenDemo() {
         duration={seconds}
         yRange={2.4}
         series={[
-          { label: "Ideal signal", points: ideal, color: "#1f2937", strokeWidth: 1.7 },
-          { label: "Displayed samples", points: displayed, color: "#0f766e", strokeWidth: 2.6, markers: pixels <= 120 },
+          { label: `Ideal signal (${signalFrequency} Hz)`, points: ideal, color: "#1f2937", strokeWidth: 1.7 },
+          {
+            label: `Screen sampled signal (${sampledFrequency} Hz apparent)`,
+            points: displayed,
+            color: "#0f766e",
+            strokeWidth: 2.6,
+            markers: horizontalPixels <= 160,
+          },
         ]}
       />
     </DemoFrame>
