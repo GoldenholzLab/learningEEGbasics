@@ -2,6 +2,11 @@
 
 A static React teaching site for epilepsy fellows learning frequency, power, filtering, and aliasing concepts in EEG.
 
+## GitHub Pages
+
+The site is configured for GitHub Pages at `https://goldenholzlab.github.io/learningEEGbasics/`.
+Pushes to `main` build and deploy `dist/` through the Pages workflow.
+
 ## Run locally
 
 ```bash
