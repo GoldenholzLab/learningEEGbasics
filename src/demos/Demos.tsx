@@ -25,6 +25,10 @@ function formatPiMultiple(radians: number) {
   return `${Number(multiple.toFixed(2))}π`;
 }
 
+function formatTime(seconds: number) {
+  return seconds < 1 ? `${Math.round(seconds * 1000)} ms` : `${Number(seconds.toFixed(1))} s`;
+}
+
 function DemoFrame({
   children,
   note,
@@ -312,6 +316,7 @@ function ScreenDemo() {
   const [pixelsPerInch, setPixelsPerInch] = useState(90);
   const [seconds, setSeconds] = useState(1);
   const [noise, setNoise] = useState(0.4);
+  const logTime = Math.log10(seconds);
   const horizontalPixels = Math.round(screenWidthInches * pixelsPerInch);
   const screenSampleRate = horizontalPixels / seconds;
   const sampledFrequency = aliasFrequency(signalFrequency, screenSampleRate);
@@ -325,29 +330,37 @@ function ScreenDemo() {
 
   return (
     <DemoFrame note="The teal trace is what a 24-inch-wide screen can draw after the time window is compressed into the available horizontal pixels.">
-      <figure className="screen-diagram" aria-label="Computer screen width diagram">
-        <div className="screen-frame">
-          <div className="screen-inner">
-            <span>{horizontalPixels.toLocaleString()} horizontal pixels</span>
+      <div className="screen-context">
+        <figure className="screen-diagram" aria-label="Computer screen width diagram">
+          <div className="screen-frame">
+            <div className="screen-inner">
+              <span>{horizontalPixels.toLocaleString()} horizontal pixels</span>
+            </div>
           </div>
+          <div className="screen-measure">
+            <span />
+            <strong>24 inches</strong>
+            <span />
+          </div>
+        </figure>
+        <div className="screen-context-copy">
+          <p className="eyebrow">Display model</p>
+          <p>
+            The simulated monitor is fixed at 24 inches wide. Pixels per inch determines how many horizontal positions are available to draw the selected time window.
+          </p>
         </div>
-        <div className="screen-measure">
-          <span />
-          <strong>24 inches</strong>
-          <span />
-        </div>
-      </figure>
+      </div>
       <div className="controls-grid">
         <Slider label="Signal frequency" value={signalFrequency} min={10} max={90} unit=" Hz" onChange={setSignalFrequency} />
         <Slider label="Pixels per inch" value={pixelsPerInch} min={20} max={220} unit=" ppi" onChange={setPixelsPerInch} />
         <Slider
           label="Time shown"
-          value={seconds}
-          min={0.1}
-          max={60}
-          step={0.1}
-          displayValue={seconds < 1 ? `${Math.round(seconds * 1000)} ms` : `${Number(seconds.toFixed(1))} s`}
-          onChange={setSeconds}
+          value={Number(logTime.toFixed(4))}
+          min={-1}
+          max={Math.log10(60)}
+          step={0.01}
+          displayValue={formatTime(seconds)}
+          onChange={(value) => setSeconds(Number(10 ** value))}
         />
         <Slider label="Slow noise" value={noise} min={0} max={1.2} step={0.1} unit=" uV" onChange={setNoise} />
       </div>
