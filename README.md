@@ -1,0 +1,2 @@
+# learningEEGbasics
+learning EEG basics
