@@ -740,6 +740,9 @@ const demoRenderers = {
   screen: renderScreenDemo,
 };
 
+let pendingDemoFrame = null;
+let pendingSliderInput = null;
+
 function renderHome() {
   const iconByDemo = {
     sine: "waves",
@@ -859,7 +862,8 @@ function currentLesson() {
 function render() {
   const lesson = currentLesson();
   app.innerHTML = lesson ? renderLesson(lesson) : renderHome();
-  bindEvents(lesson);
+  bindDemoEvents(lesson);
+  bindQuizEvents(lesson);
 }
 
 function updateState(path, value) {
@@ -875,11 +879,86 @@ function updateState(path, value) {
   }
 }
 
-function bindEvents(lesson) {
+function htmlToElement(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+  return template.content.firstElementChild;
+}
+
+function syncControlsFromPanel(nextPanel, activeInput) {
+  document.querySelectorAll("[data-control]").forEach((input) => {
+    const nextInput = Array.from(nextPanel.querySelectorAll("[data-control]")).find(
+      (candidate) => candidate.dataset.control === input.dataset.control,
+    );
+    if (!nextInput) return;
+    const control = input.closest(".control");
+    const nextControl = nextInput.closest(".control");
+    if (control && nextControl) {
+      control.style.cssText = nextControl.style.cssText;
+      const currentStrong = control.querySelector("strong");
+      const nextStrong = nextControl.querySelector("strong");
+      if (currentStrong && nextStrong) currentStrong.textContent = nextStrong.textContent;
+    }
+    if (input !== activeInput) input.value = nextInput.value;
+  });
+}
+
+function syncDemoVisuals(activeInput) {
+  const lesson = currentLesson();
+  if (!lesson) return;
+  const panel = document.querySelector(".demo-panel");
+  if (!panel) return;
+  const nextPanel = htmlToElement(demoRenderers[lesson.demoKey]());
+
+  syncControlsFromPanel(nextPanel, activeInput);
+
+  const currentFigures = panel.querySelectorAll("figure.waveform");
+  const nextFigures = nextPanel.querySelectorAll("figure.waveform");
+  currentFigures.forEach((figure, index) => {
+    if (nextFigures[index]) figure.replaceWith(nextFigures[index]);
+  });
+
+  const currentScreenContext = panel.querySelector(".screen-context");
+  const nextScreenContext = nextPanel.querySelector(".screen-context");
+  if (currentScreenContext && nextScreenContext) currentScreenContext.replaceWith(nextScreenContext);
+
+  const note = panel.querySelector(".demo-note");
+  const nextNote = nextPanel.querySelector(".demo-note");
+  if (note && nextNote) note.textContent = nextNote.textContent;
+}
+
+function scheduleDemoVisualSync(input) {
+  pendingSliderInput = input;
+  if (pendingDemoFrame) return;
+  pendingDemoFrame = requestAnimationFrame(() => {
+    const activeInput = pendingSliderInput;
+    pendingDemoFrame = null;
+    pendingSliderInput = null;
+    syncDemoVisuals(activeInput);
+  });
+}
+
+function renderActiveDemo(lesson = currentLesson()) {
+  if (!lesson) return;
+  const panel = document.querySelector(".demo-panel");
+  if (!panel) return;
+  panel.replaceWith(htmlToElement(demoRenderers[lesson.demoKey]()));
+  bindDemoEvents(lesson);
+}
+
+function renderActiveQuiz(lesson) {
+  if (!lesson) return;
+  const quiz = document.querySelector(".quiz-section");
+  if (!quiz) return;
+  quiz.replaceWith(htmlToElement(renderQuiz(lesson)));
+  bindQuizEvents(lesson);
+}
+
+function bindDemoEvents(lesson) {
   document.querySelectorAll("[data-control]").forEach((input) => {
     input.addEventListener("input", (event) => {
       updateState(event.target.dataset.control, Number(event.target.value));
-      render();
+      scheduleDemoVisualSync(event.target);
     });
   });
 
@@ -889,30 +968,32 @@ function bindEvents(lesson) {
       state.adding.enabledFrequencies = event.target.checked
         ? [...state.adding.enabledFrequencies, frequency].sort((a, b) => a - b)
         : state.adding.enabledFrequencies.filter((item) => item !== frequency);
-      render();
+      renderActiveDemo(lesson);
     });
   });
 
   document.querySelectorAll("[data-filter-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       state.filters.mode = button.dataset.filterMode;
-      render();
+      renderActiveDemo(lesson);
     });
   });
 
   document.querySelectorAll("[data-action='random-phase']").forEach((button) => {
     button.addEventListener("click", () => {
       state.sampling.phase = Math.random() * Math.PI * 2;
-      render();
+      renderActiveDemo(lesson);
     });
   });
+}
 
+function bindQuizEvents(lesson) {
   document.querySelectorAll("[data-quiz-question]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!lesson) return;
       if (!state.quiz[lesson.id]) state.quiz[lesson.id] = {};
       state.quiz[lesson.id][button.dataset.quizQuestion] = Number(button.dataset.quizAnswer);
-      render();
+      renderActiveQuiz(lesson);
     });
   });
 }
