@@ -607,7 +607,7 @@ function renderBandsDemo() {
           ${slider({ id: "bands.beta", label: "Beta 18 Hz", value: s.beta, min: 0, max: 16, unit: " uV", accentColor: colors.beta })}
         </div>
         <div class="band-plot-stack">
-          ${waveformPlot({ title: "Individual band sine waves", plotDuration: duration, yRange: amplitudeRange(bandSeries.map((item) => item.points)), series: bandSeries })}
+          ${waveformPlot({ title: "Individual band sine waves", plotDuration: duration, yRange: 16, series: bandSeries })}
           ${waveformPlot({ title: "Band mixture", plotDuration: duration, yRange: amplitudeRange([sum]), series: [{ label: "Summed EEG-like trace", points: sum, color: "#1f2937" }] })}
         </div>
       </div>
