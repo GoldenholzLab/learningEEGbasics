@@ -290,6 +290,7 @@ const state = {
   sampling: { signalFrequency: 10, lowRate: 6, phase: 0.8 },
   screen: { signalFrequency: 60, pixelsPerInch: 90, seconds: 1, noise: 0.4 },
   quiz: {},
+  quizAnswerOrder: {},
 };
 
 const app = document.getElementById("app");
@@ -788,6 +789,15 @@ function renderHome() {
   `;
 }
 
+function shuffledAnswerIndices(answers) {
+  const indices = answers.map((_, index) => index);
+  for (let index = indices.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [indices[index], indices[swapIndex]] = [indices[swapIndex], indices[index]];
+  }
+  return indices;
+}
+
 function renderQuiz(lesson) {
   const selected = state.quiz[lesson.id] ?? {};
   return `
@@ -810,8 +820,9 @@ function renderQuiz(lesson) {
                   ${answered && !correct ? `<span class="answer-icon wrong-icon" aria-label="Incorrect">${icon("x", 24)}</span>` : ""}
                 </div>
                 <div class="answers">
-                  ${question.answers
-                    .map((answer, answerIndex) => {
+                  ${state.quizAnswerOrder[lesson.id][questionIndex]
+                    .map((answerIndex) => {
+                      const answer = question.answers[answerIndex];
                       const stateClass = answered && selectedIndex === answerIndex ? (answerIndex === question.correctIndex ? "answer-correct" : "answer-wrong") : "";
                       return `<button class="answer-button ${stateClass}" data-quiz-question="${questionIndex}" data-quiz-answer="${answerIndex}" type="button">${escapeHtml(answer)}</button>`;
                     })
@@ -861,6 +872,8 @@ function currentLesson() {
 
 function render() {
   const lesson = currentLesson();
+  // Shuffle on route opening; quiz and demo updates reuse this order.
+  if (lesson) state.quizAnswerOrder[lesson.id] = lesson.quiz.map((question) => shuffledAnswerIndices(question.answers));
   app.innerHTML = lesson ? renderLesson(lesson) : renderHome();
   bindDemoEvents(lesson);
   bindQuizEvents(lesson);
